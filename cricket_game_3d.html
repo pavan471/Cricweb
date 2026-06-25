@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Cricket Game</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif;
+            overflow: hidden;
+            background: #1a472a;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            perspective: 1000px;
+            overflow: hidden;
+        }
+        
+        #sky {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 35%;
+            background: linear-gradient(to bottom, #1e90ff 0%, #87ceeb 50%, #e0f6ff 100%);
+            z-index: 1;
+        }
+        
+        #stadium {
+            position: absolute;
+            top: 20%;
+            left: 0;
+            width: 100%;
+            height: 80%;
+            background: radial-gradient(ellipse at center bottom, #2d5a1e 0%, #1a472a 70%, #0d2b1a 100%);
+            transform-style: preserve-3d;
+            z-index: 2;
+        }
+        
+        #crowd {
+            position: absolute;
+            bottom: 20%;
+            left: 0;
+            width: 100%;
+            height: 15%;
+            background: repeating-radial-gradient(
+                circle at 50% 100%,
+                rgba(255,215,0,0.6) 0px, rgba(255,215,0,0.6) 3px,
+                rgba(255,99,71,0.6) 3px, rgba(255,99,71,0.6) 6px,
+                rgba(65,105,225,0.6) 6px, rgba(65,105,225,0.6) 9px,
+                rgba(50,205,50,0.6) 9px, rgba(50,205,50,0.6) 12px,
+                rgba(255,20,147,0.6) 12px, rgba(255,20,147,0.6) 15px
+            );
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+        
+        .crowd-cheering {
+            animation: crowdJump 0.3s ease-in-out infinite !important;
+            opacity: 1 !important;
+        }
+        
+        @keyframes crowdJump {
+            0%, 100% { transform: scaleY(1); }
+            50% { transform: scaleY(1.05); }
+        }
+        
+        #field {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%) rotateX(60deg);
+            width: 800px;
+            height: 600px;
+            background: radial-gradient(ellipse at center, #4a7c2e 0%, #3d6b25 60%, #2d5a1e 100%);
+            border-radius: 50% 50% 50% 50% / 30% 30% 70% 70%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        }
+        
+        #pitch {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 280px;
+            background: linear-gradient(to bottom, #d2b48c 0%, #c4a574 50%, #d2b48c 100%);
+            border-radius: 4px;
+        }
+        
+        .crease {
+            position: absolute;
+            width: 80px;
+            height: 3px;
+            background: white;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .crease.top { top: 20px; }
+        .crease.bottom { bottom: 20px; }
+        
+        .stumps {
+            position: absolute;
+            width: 20px;
+            height: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .stumps::before, .stumps::after {
+            content: '';
+            position: absolute;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(to right, #8b4513, #deb887, #8b4513);
+            border-radius: 2px;
+        }
+        .stumps::before { left: 2px; }
+        .stumps::after { right: 2px; }
+        .stumps-top { top: 5px; }
+        .stumps-bottom { bottom: 5px; }
+        
+        .player {
+            position: absolute;
+            width: 24px;
+            height: 40px;
+            border-radius: 50% 50% 10% 10%;
+            transform-style: preserve-3d;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        .player::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 14px;
+            height: 14px;
+            background: #ffdbac;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .batter {
+            background: linear-gradient(to bottom, #dc143c 0%, #dc143c 60%, #ffffff 60%, #ffffff 85%, #dc143c 85%);
+            z-index: 10;
+        }
+        
+        .bowler {
+            background: linear-gradient(to bottom, #4169e1 0%, #4169e1 60%, #ffffff 60%, #ffffff 85%, #4169e1 85%);
+            z-index: 9;
+        }
+        
+        .fielder {
+            background: linear-gradient(to bottom, #4169e1 0%, #4169e1 60%, #ffffff 60%, #ffffff 85%, #4169e1 85%);
+            z-index: 8;
+        }
+        
+        .player-name {
+            position: absolute;
+            bottom: -14px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 7px;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        
+        #ball {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: radial-gradient(circle at 30% 30%, #ff4444, #cc0000);
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            z-index: 100;
+            display: none;
+        }
+        
+        #scoreboard {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.85);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 11px;
+            z-index: 1000;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .score-team {
+            text-align: center;
+        }
+        
+        .score-team .runs {
+            font-size: 18px;
+            font-weight: bold;
+            color: #ffd700;
+        }
+        
+        .score-team .wickets {
+            font-size: 14px;
+            color: #ff6b6b;
+        }
+        
+        .score-divider {
+            color: #666;
+        }
+        
+        .overs-info {
+            text-align: center;
+        }
+        
+        .overs-info .label {
+            font-size: 9px;
+            color: #aaa;
+        }
+        
+        .overs-info .value {
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .speed-indicator {
+            text-align: center;
+        }
+        
+        .speed-indicator .label {
+            font-size: 9px;
+            color: #aaa;
+        }
+        
+        .speed-indicator .value {
+            font-size: 12px;
+            color: #4ecdc4;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+        
+        .shot-btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+        }
+        
+        .shot-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 12px rgba(0,0,0,0.4);
+        }
+        
+        .shot-btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-defensive { background: linear-gradient(to bottom, #2ecc71, #27ae60); color: white; }
+        .btn-drive { background: linear-gradient(to bottom, #3498db, #2980b9); color: white; }
+        .btn-lofted { background: linear-gradient(to bottom, #f39c12, #d68910); color: white; }
+        .btn-power { background: linear-gradient(to bottom, #e74c3c, #c0392b); color: white; }
+        
+        #commentary {
+            position: absolute;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 11px;
+            z-index: 1000;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        #boundary-msg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            font-size: 48px;
+            font-weight: bold;
+            color: #ffd700;
+            text-shadow: 0 4px 12px rgba(0,0,0,0.6), 0 0 20px rgba(255,215,0,0.8);
+            z-index: 2000;
+            pointer-events: none;
+            transition: transform 0.3s ease-out;
+        }
+        
+        #boundary-msg.show {
+            transform: translate(-50%, -50%) scale(1);
+            animation: boundaryPulse 0.5s ease-in-out;
+        }
+        
+        @keyframes boundaryPulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.2); }
+        }
+        
+        #team-roster {
+            position: absolute;
+            top: 60px;
+            background: rgba(0,0,0,0.75);
+            color: white;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 8px;
+            z-index: 999;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        #team-roster.left { left: 10px; }
+        #team-roster.right { right: 10px; }
+        
+        #team-roster h4 {
+            font-size: 10px;
+            margin-bottom: 4px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 2px;
+        }
+        
+        #team-roster ul {
+            list-style: none;
+        }
+        
+        #team-roster li {
+            padding: 1px 0;
+            opacity: 0.8;
+        }
+        
+        #team-roster li.active {
+            color: #ffd700;
+            font-weight: bold;
+            opacity: 1;
+        }
+        
+        .bowling-arm {
+            position: absolute;
+            width: 6px;
+            height: 20px;
+            background: #ffdbac;
+            border-radius: 3px;
+            transform-origin: top center;
+            transition: transform 0.1s;
+        }
+        
+        .bat {
+            position: absolute;
+            width: 8px;
+            height: 35px;
+            background: linear-gradient(to right, #8b4513, #deb887, #8b4513);
+            border-radius: 4px;
+            transform-origin: bottom center;
+            z-index: 11;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="sky"></div>
+        <div id="stadium">
+            <div id="crowd"></div>
+            <div id="field">
+                <div id="pitch">
+                    <div class="crease top"></div>
+                    <div class="crease bottom"></div>
+                    <div class="stumps stumps-top"></div>
+                    <div class="stumps stumps-bottom"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="scoreboard">
+            <div class="score-team">
+                <div class="runs" id="score-runs">0</div>
+                <div class="wickets" id="score-wickets">/ 0</div>
+            </div>
+            <div class="score-divider">|</div>
+            <div class="overs-info">
+                <div class="label">OVERS</div>
+                <div class="value" id="overs-count">0.0</div>
+            </div>
+            <div class="score-divider">|</div>
+            <div class="speed-indicator">
+                <div class="label">SPEED</div>
+                <div class="value" id="ball-speed">100 km/h</div>
+            </div>
+        </div>
+        
+        <div id="commentary">Ready to play! Select a shot.</div>
+        
+        <div id="boundary-msg"></div>
+        
+        <div id="team-roster" class="left">
+            <h4 style="color: #dc143c;">TEAM RED (Batting)</h4>
+            <ul id="batting-roster"></ul>
+        </div>
+        
+        <div id="team-roster" class="right">
+            <h4 style="color: #4169e1;">TEAM BLUE (Bowling)</h4>
+            <ul id="bowling-roster"></ul>
+        </div>
+        
+        <div id="controls">
+            <button class="shot-btn btn-defensive" onclick="playShot('defensive')">Defensive</button>
+            <button class="shot-btn btn-drive" onclick="playShot('drive')">Drive</button>
+            <button class="shot-btn btn-lofted" onclick="playShot('lofted')">Lofted</button>
+            <button class="shot-btn btn-power" onclick="playShot('power')">Power Shot</button>
+        </div>
+        
+        <div id="ball"></div>
+    </div>
+
+    <script>
+        const teams = {
+            batting: [
+                "R. Sharma", "S. Dhawan", "V. Kohli", "S. Iyer", "K.L. Rahul",
+                "H. Pandya", "M.S. Dhoni", "R. Jadeja", "Y. Chahal", "J. Bumrah", "M. Shami"
+            ],
+            bowling: [
+                "T. Boult", "J. Hazlewood", "P. Cummins", "M. Starc", "N. Lyon",
+                "B. Stokes", "C. Woakes", "A. Rashid", "K. Rabada", "T. Southee", "S. Broad"
+            ]
+        };
+
+        let gameState = {
+            runs: 0,
+            wickets: 0,
+            balls: 0,
+            strikerIndex: 0,
+            nonStrikerIndex: 1,
+            bowlerIndex: 0,
+            ballSpeed: 100,
+            speedLevel: 1,
+            isBallInPlay: false
+        };
+
+        const fieldPositions = [
+            { x: 350, y: 250, name: "Slip" },
+            { x: 380, y: 270, name: "Gully" },
+            { x: 320, y: 300, name: "Point" },
+            { x: 280, y: 350, name: "Cover" },
+            { x: 250, y: 400, name: "Mid-off" },
+            { x: 450, y: 350, name: "Mid-on" },
+            { x: 480, y: 400, name: "Mid-wicket" },
+            { x: 420, y: 450, name: "Square Leg" },
+            { x: 350, y: 500, name: "Fine Leg" },
+            { x: 250, y: 480, name: "Third Man" }
+        ];
+
+        function initGame() {
+            renderRosters();
+            createFielders();
+            createBatter();
+            createBowler();
+            updateScoreboard();
+        }
+
+        function renderRosters() {
+            const batRoster = document.getElementById('batting-roster');
+            const bowlRoster = document.getElementById('bowling-roster');
+            
+            batRoster.innerHTML = teams.batting.map((name, i) => 
+                `<li class="${i === gameState.strikerIndex || i === gameState.nonStrikerIndex ? 'active' : ''}">${name}</li>`
+            ).join('');
+            
+            bowlRoster.innerHTML = teams.bowling.map((name, i) => 
+                `<li class="${i === gameState.bowlerIndex ? 'active' : ''}">${name}</li>`
+            ).join('');
+        }
+
+        function createBatter() {
+            const existing = document.querySelector('.batter');
+            if (existing) existing.remove();
+            
+            const batter = document.createElement('div');
+            batter.className = 'player batter';
+            batter.id = 'batter';
+            batter.style.left = '50%';
+            batter.style.bottom = '15%';
+            batter.style.transform = 'translateX(-50%)';
+            
+            const name = document.createElement('div');
+            name.className = 'player-name';
+            name.textContent = teams.batting[gameState.strikerIndex];
+            batter.appendChild(name);
+            
+            const bat = document.createElement('div');
+            bat.className = 'bat';
+            bat.id = 'bat';
+            bat.style.bottom = '10px';
+            bat.style.left = '50%';
+            bat.style.transform = 'translateX(-50%) rotate(10deg)';
+            batter.appendChild(bat);
+            
+            document.getElementById('field').appendChild(batter);
+        }
+
+        function createBowler() {
+            const existing = document.querySelector('.bowler');
+            if (existing) existing.remove();
+            
+            const bowler = document.createElement('div');
+            bowler.className = 'player bowler';
+            bowler.id = 'bowler';
+            bowler.style.left = '50%';
+            bowler.style.top = '15%';
+            bowler.style.transform = 'translateX(-50%)';
+            
+            const name = document.createElement('div');
+            name.className = 'player-name';
+            name.textContent = teams.bowling[gameState.bowlerIndex];
+            bowler.appendChild(name);
+            
+            document.getElementById('field').appendChild(bowler);
+        }
+
+        function createFielders() {
+            document.querySelectorAll('.fielder').forEach(f => f.remove());
+            
+            fieldPositions.forEach((pos, i) => {
+                const fielder = document.createElement('div');
+                fielder.className = 'player fielder';
+                fielder.style.left = pos.x + 'px';
+                fielder.style.top = pos.y + 'px';
+                
+                const name = document.createElement('div');
+                name.className = 'player-name';
+                name.textContent = teams.bowling[(i + 2) % 11];
+                fielder.appendChild(name);
+                
+                document.getElementById('field').appendChild(fielder);
+            });
+        }
+
+        function rotateFieldPositions() {
+            const rotated = [...fieldPositions.slice(5), ...fieldPositions.slice(0, 5)];
+            fieldPositions.forEach((pos, i) => {
+                pos.x = rotated[i].x;
+                pos.y = rotated[i].y;
+            });
+            
+            document.querySelectorAll('.fielder').forEach((f, i) => {
+                f.style.left = fieldPositions[i].x + 'px';
+                f.style.top = fieldPositions[i].y + 'px';
+            });
+        }
+
+        function updateScoreboard() {
+            document.getElementById('score-runs').textContent = gameState.runs;
+            document.getElementById('score-wickets').textContent = '/ ' + gameState.wickets;
+            document.getElementById('overs-count').textContent = 
+                Math.floor(gameState.balls / 6) + '.' + (gameState.balls % 6);
+            document.getElementById('ball-speed').textContent = gameState.ballSpeed + ' km/h';
+        }
+
+        function showCommentary(text) {
+            document.getElementById('commentary').textContent = text;
+        }
+
+        function showBoundary(message) {
+            const msg = document.getElementById('boundary-msg');
+            msg.textContent = message;
+            msg.classList.add('show');
+            
+            const crowd = document.getElementById('crowd');
+            crowd.classList.add('crowd-cheering');
+            
+            setTimeout(() => {
+                msg.classList.remove('show');
+                crowd.classList.remove('crowd-cheering');
+            }, 1500);
+        }
+
+        function playShot(shotType) {
+            if (gameState.isBallInPlay) return;
+            gameState.isBallInPlay = true;
+            
+            const bowler = document.getElementById('bowler');
+            const batter = document.getElementById('batter');
+            const bat = document.getElementById('bat');
+            const ball = document.getElementById('ball');
+            
+            // Bowler animation
+            bowler.style.transition = 'top 0.5s ease-in';
+            bowler.style.top = '40%';
+            
+            setTimeout(() => {
+                // Show ball
+                ball.style.display = 'block';
+                ball.style.left = '50%';
+                ball.style.top = '40%';
+                ball.style.transition = 'none';
+                
+                // Ball moving towards batter
+                setTimeout(() => {
+                    ball.style.transition = 'top 0.3s linear';
+                    ball.style.top = '50%';
+                    
+                    // Batter swings
+                    setTimeout(() => {
+                        const swingAngle = shotType === 'defensive' ? 30 : 
+                                          shotType === 'drive' ? 45 : 
+                                          shotType === 'lofted' ? 60 : 75;
+                        bat.style.transition = 'transform 0.15s ease-out';
+                        bat.style.transform = 'translateX(-50%) rotate(-' + swingAngle + 'deg)';
+                        
+                        setTimeout(() => {
+                            bat.style.transform = 'translateX(-50%) rotate(10deg)';
+                            
+                            // Calculate outcome
+                            const outcomes = getShotOutcome(shotType);
+                            handleOutcome(outcomes);
+                            
+                        }, 150);
+                    }, 150);
+                }, 50);
+            }, 500);
+        }
+
+        function getShotOutcome(shotType) {
+            const rand = Math.random();
+            let runs, commentary;
+            
+            switch(shotType) {
+                case 'defensive':
+                    if (rand < 0.6) { runs = 0; commentary = "Good defensive shot, no run."; }
+                    else if (rand < 0.85) { runs = 1; commentary = "Quick single taken!"; }
+                    else if (rand < 0.95) { runs = 2; commentary = "Nice placement, two runs!"; }
+                    else { runs = -1; commentary = "WICKET! Edged and caught!"; }
+                    break;
+                case 'drive':
+                    if (rand < 0.3) { runs = 0; commentary = "Straight to the fielder."; }
+                    else if (rand < 0.6) { runs = 1; commentary = "Good running, one run."; }
+                    else if (rand < 0.8) { runs = 2; commentary = "Excellent drive, two runs!"; }
+                    else if (rand < 0.92) { runs = 4; commentary = "FOUR! Beautiful drive through covers!"; }
+                    else if (rand < 0.97) { runs = -1; commentary = "WICKET! Caught in the deep!"; }
+                    else { runs = 6; commentary = "SIX! Massive hit over long-on!"; }
+                    break;
+                case 'lofted':
+                    if (rand < 0.25) { runs = 0; commentary = "Didn't time it well."; }
+                    else if (rand < 0.5) { runs = 1; commentary = "One run taken."; }
+                    else if (rand < 0.7) { runs = 2; commentary = "Good lofted shot, two runs."; }
+                    else if (rand < 0.85) { runs = 4; commentary = "FOUR! Over the infield!"; }
+                    else if (rand < 0.95) { runs = 6; commentary = "SIX! Clean hit over the ropes!"; }
+                    else { runs = -1; commentary = "WICKET! Caught trying to go big!"; }
+                    break;
+                case 'power':
+                    if (rand < 0.2) { runs = 0; commentary = "Swing and a miss!"; }
+                    else if (rand < 0.4) { runs = 1; commentary = "Got some runs there."; }
+                    else if (rand < 0.6) { runs = 2; commentary = "Powerful shot, two runs!"; }
+                    else if (rand < 0.75) { runs = 4; commentary = "FOUR! Pure power!"; }
+                    else if (rand < 0.9) { runs = 6; commentary = "SIX! Out of the stadium!"; }
+                    else { runs = -1; commentary = "WICKET! Top edge, caught behind!"; }
+                    break;
+            }
+            
+            return { runs, commentary };
+        }
+
+        function handleOutcome(outcome) {
+            const ball = document.getElementById('ball');
+            
+            if (outcome.runs === -1) {
+                gameState.wickets++;
+                gameState.strikerIndex = (gameState.strikerIndex + 2) % 11;
+                showCommentary(outcome.commentary);
+                createBatter();
+            } else {
+                gameState.runs += outcome.runs;
+                showCommentary(outcome.commentary);
+                
+                if (outcome.runs === 4 || outcome.runs === 6) {
+                    showBoundary(outcome.runs === 4 ? 'FOUR!' : 'SIX!');
+                }
+                
+                if (outcome.runs % 2 === 1) {
+                    const temp = gameState.strikerIndex;
+                    gameState.strikerIndex = gameState.nonStrikerIndex;
+                    gameState.nonStrikerIndex = temp;
+                    createBatter();
+                }
+            }
+            
+            gameState.balls++;
+            
+            // Check for over completion
+            if (gameState.balls % 6 === 0) {
+                gameState.bowlerIndex = (gameState.bowlerIndex + 1) % 11;
+                rotateFieldPositions();
+                createBowler();
+                showCommentary("End of over. Field positions changed!");
+            }
+            
+            // Increase ball speed every 10 runs
+            const newSpeedLevel = Math.floor(gameState.runs / 10) + 1;
+            if (newSpeedLevel > gameState.speedLevel && newSpeedLevel <= 5) {
+                gameState.speedLevel = newSpeedLevel;
+                gameState.ballSpeed = 100 + (gameState.speedLevel - 1) * 10;
+                showCommentary(`Ball speed increased to ${gameState.ballSpeed} km/h!`);
+            }
+            
+            // Reset positions
+            setTimeout(() => {
+                ball.style.display = 'none';
+                document.getElementById('bowler').style.top = '15%';
+                gameState.isBallInPlay = false;
+                updateScoreboard();
+                renderRosters();
+                
+                // Check innings end
+                if (gameState.wickets >= 10) {
+                    showCommentary("Innings ended! All out for " + gameState.runs);
+                    gameState.isBallInPlay = true;
+                }
+            }, 1000);
+        }
+
+        // Initialize game on load
+        window.onload = initGame;
+    </script>
+</body>
+</html>
