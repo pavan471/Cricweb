@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cricket Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 50%, #228B22 50%, #228B22 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .stadium {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .audience {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 40%;
+            background: repeating-radial-gradient(
+                circle at 50% 100%,
+                #FFD700 0px,
+                #FFD700 2px,
+                #FF6347 2px,
+                #FF6347 4px,
+                #4169E1 4px,
+                #4169E1 6px,
+                #32CD32 6px,
+                #32CD32 8px,
+                #FF1493 8px,
+                #FF1493 10px
+            );
+            opacity: 0.7;
+        }
+
+        .field {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 50%;
+            background: radial-gradient(ellipse at center, #90EE90 0%, #228B22 100%);
+            border-radius: 50% 50% 0 0;
+            border: 8px solid #8B4513;
+        }
+
+        .pitch {
+            position: absolute;
+            bottom: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            height: 40px;
+            background: #DEB887;
+            border: 2px solid #8B4513;
+        }
+
+        .crease {
+            position: absolute;
+            width: 300px;
+            height: 2px;
+            background: white;
+        }
+
+        .crease.top {
+            top: 5px;
+        }
+
+        .crease.bottom {
+            bottom: 5px;
+        }
+
+        .stumps {
+            position: absolute;
+            width: 20px;
+            height: 30px;
+            background: #DEB887;
+            border: 1px solid #8B4513;
+        }
+
+        .stumps.top {
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .stumps.bottom {
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .player {
+            position: absolute;
+            width: 20px;
+            height: 30px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .batter {
+            background: #FF0000;
+            border: 2px solid #8B0000;
+        }
+
+        .bowler {
+            background: #0000FF;
+            border: 2px solid #00008B;
+        }
+
+        .fielder {
+            background: #0000FF;
+            border: 2px solid #00008B;
+        }
+
+        .ball {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #DC143C;
+            border-radius: 50%;
+            transition: all 0.1s linear;
+        }
+
+        .scoreboard {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 15px;
+            z-index: 1000;
+            min-width: 600px;
+        }
+
+        .scoreboard-header {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #FFD700;
+        }
+
+        .teams-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .team {
+            text-align: center;
+            flex: 1;
+        }
+
+        .team-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .team-a .team-name {
+            color: #FF4500;
+        }
+
+        .team-b .team-name {
+            color: #4169E1;
+        }
+
+        .score {
+            font-size: 36px;
+            font-weight: bold;
+        }
+
+        .overs {
+            font-size: 16px;
+            margin-top: 5px;
+        }
+
+        .current-info {
+            text-align: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #444;
+        }
+
+        .batters-info, .bowler-info {
+            display: inline-block;
+            margin: 0 20px;
+            font-size: 14px;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-shot {
+            background: #FF4500;
+            color: white;
+        }
+
+        .btn-shot:hover {
+            background: #FF6347;
+            transform: scale(1.05);
+        }
+
+        .speed-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            z-index: 1000;
+        }
+
+        .speed-level {
+            font-size: 20px;
+            font-weight: bold;
+            color: #FFD700;
+        }
+
+        .commentary {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            z-index: 1000;
+            font-size: 18px;
+            min-width: 400px;
+            text-align: center;
+        }
+
+        .team-roster {
+            position: fixed;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 1000;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .team-roster h3 {
+            margin-bottom: 15px;
+            color: #FFD700;
+        }
+
+        .team-roster ul {
+            list-style: none;
+            font-size: 12px;
+        }
+
+        .team-roster li {
+            margin: 5px 0;
+        }
+
+        .team-roster-a h3 {
+            color: #FF4500;
+        }
+
+        .team-roster-b {
+            left: auto;
+            right: 20px;
+        }
+
+        .team-roster-b h3 {
+            color: #4169E1;
+        }
+
+        .boundary-indicator {
+            position: absolute;
+            font-size: 24px;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            animation: bounce 0.5s ease-in-out;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="stadium">
+        <div class="audience"></div>
+        
+        <div class="field">
+            <div class="pitch">
+                <div class="crease top"></div>
+                <div class="crease bottom"></div>
+                <div class="stumps top"></div>
+                <div class="stumps bottom"></div>
+            </div>
+            
+            <div id="batter1" class="player batter"></div>
+            <div id="batter2" class="player batter"></div>
+            <div id="bowler" class="player bowler"></div>
+            <div id="ball" class="ball"></div>
+        </div>
+    </div>
+
+    <div class="scoreboard">
+        <div class="scoreboard-header">🏏 CRICKET MATCH 🏏</div>
+        <div class="teams-display">
+            <div class="team team-a">
+                <div class="team-name">🔴 Team Red</div>
+                <div class="score" id="scoreA">0/0</div>
+                <div class="overs" id="oversA">0.0 overs</div>
+            </div>
+            <div style="font-size: 24px;">VS</div>
+            <div class="team team-b">
+                <div class="team-name">🔵 Team Blue</div>
+                <div class="score" id="scoreB">0/0</div>
+                <div class="overs" id="oversB">0.0 overs</div>
+            </div>
+        </div>
+        <div class="current-info">
+            <div class="batters-info">
+                <strong>Batters:</strong><br>
+                <span id="batter1Name">Player 1</span>: <span id="batter1Runs">0</span>(<span id="batter1Balls">0</span>)<br>
+                <span id="batter2Name">Player 2</span>: <span id="batter2Runs">0</span>(<span id="batter2Balls">0</span>)
+            </div>
+            <div class="bowler-info">
+                <strong>Bowler:</strong><br>
+                <span id="bowlerName">Player 1</span>: <span id="bowlerOvers">0.0</span> - <span id="bowlerRuns">0</span>/<span id="bowlerWickets">0</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="speed-indicator">
+        <div>Ball Speed</div>
+        <div class="speed-level" id="speedLevel">Level 1</div>
+        <div id="speedValue">100 km/h</div>
+    </div>
+
+    <div class="commentary" id="commentary">
+        Match started! Team Red batting first.
+    </div>
+
+    <div class="team-roster team-roster-a">
+        <h3>🔴 Team Red</h3>
+        <ul id="rosterA"></ul>
+    </div>
+
+    <div class="team-roster team-roster-b">
+        <h3>🔵 Team Blue</h3>
+        <ul id="rosterB"></ul>
+    </div>
+
+    <div class="controls">
+        <button class="btn btn-shot" onclick="playShot('defensive')">Defensive</button>
+        <button class="btn btn-shot" onclick="playShot('drive')">Drive</button>
+        <button class="btn btn-shot" onclick="playShot('lofted')">Lofted</button>
+        <button class="btn btn-shot" onclick="playShot('power')">Power Shot</button>
+    </div>
+
+    <script>
+        const gameState = {
+            currentInnings: 1,
+            battingTeam: 'A',
+            bowlingTeam: 'B',
+            scores: {
+                A: { runs: 0, wickets: 0, overs: 0, balls: 0 },
+                B: { runs: 0, wickets: 0, overs: 0, balls: 0 }
+            },
+            speedLevel: 1,
+            totalRuns: 0,
+            batsmen: {
+                A: [
+                    { name: 'Rohit', runs: 0, balls: 0, out: false },
+                    { name: 'Shubman', runs: 0, balls: 0, out: false },
+                    { name: 'Virat', runs: 0, balls: 0, out: false },
+                    { name: 'Shreyas', runs: 0, balls: 0, out: false },
+                    { name: 'KL Rahul', runs: 0, balls: 0, out: false },
+                    { name: 'Hardik', runs: 0, balls: 0, out: false },
+                    { name: 'Ravindra', runs: 0, balls: 0, out: false },
+                    { name: 'Jadeja', runs: 0, balls: 0, out: false },
+                    { name: 'Kuldeep', runs: 0, balls: 0, out: false },
+                    { name: 'Bumrah', runs: 0, balls: 0, out: false },
+                    { name: 'Siraj', runs: 0, balls: 0, out: false }
+                ],
+                B: [
+                    { name: 'David', runs: 0, balls: 0, out: false },
+                    { name: 'Travis', runs: 0, balls: 0, out: false },
+                    { name: 'Steve', runs: 0, balls: 0, out: false },
+                    { name: 'Marnus', runs: 0, balls: 0, out: false },
+                    { name: 'Glenn', runs: 0, balls: 0, out: false },
+                    { name: 'Alex', runs: 0, balls: 0, out: false },
+                    { name: 'Mitchell M', runs: 0, balls: 0, out: false },
+                    { name: 'Pat', runs: 0, balls: 0, out: false },
+                    { name: 'Mitchell S', runs: 0, balls: 0, out: false },
+                    { name: 'Adam', runs: 0, balls: 0, out: false },
+                    { name: 'Josh', runs: 0, balls: 0, out: false }
+                ]
+            },
+            currentBatsmen: {
+                A: [0, 1],
+                B: [0, 1]
+            },
+            currentBowler: {
+                A: 0,
+                B: 0
+            },
+            bowlers: {
+                A: [
+                    { name: 'Bumrah', overs: 0, balls: 0, runs: 0, wickets: 0 },
+                    { name: 'Siraj', overs: 0, balls: 0, runs: 0, wickets: 0 },
+                    { name: 'Hardik', overs: 0, balls: 0, runs: 0, wickets: 0 },
+                    { name: 'Ravindra', overs: 0, balls: 0, runs: 0, wickets: 0 },
+                    { name: 'Kuldeep', overs: 0, balls: 0, runs: 0, wickets: 0 },
+                    { name: 'Jadeja', overs: 0, balls: 0, runs: 0, wickets: 0 }
+                ],
+                B: [
+                    { name: 'Pat', overs: 0, balls: 0, runs: 0, wickets: 0 },
+                    { name: 'Mitchell S', overs: 0, balls: 0, runs: 0, wickets: 0 },
+                    { name: 'Glenn', overs: 0, balls: 0, runs: 0, wickets: 0 },
+                    { name: 'Adam', overs: 0, balls: 0, runs: 0, wickets: 0 },
+                    { name: 'Josh', overs: 0, balls: 0, runs: 0, wickets: 0 },
+                    { name: 'Travis', overs: 0, balls: 0, runs: 0, wickets: 0 }
+                ]
+            }
+        };
+
+        function initializeRosters() {
+            const rosterA = document.getElementById('rosterA');
+            const rosterB = document.getElementById('rosterB');
+            
+            gameState.batsmen.A.forEach((player, index) => {
+                const li = document.createElement('li');
+                li.textContent = `${index + 1}. ${player.name}`;
+                rosterA.appendChild(li);
+            });
+            
+            gameState.batsmen.B.forEach((player, index) => {
+                const li = document.createElement('li');
+                li.textContent = `${index + 1}. ${player.name}`;
+                rosterB.appendChild(li);
+            });
+        }
+
+        function updateScoreboard() {
+            document.getElementById('scoreA').textContent = `${gameState.scores.A.runs}/${gameState.scores.A.wickets}`;
+            document.getElementById('scoreB').textContent = `${gameState.scores.B.runs}/${gameState.scores.B.wickets}`;
+            
+            document.getElementById('oversA').textContent = `${gameState.scores.A.overs}.${gameState.scores.A.balls} overs`;
+            document.getElementById('oversB').textContent = `${gameState.scores.B.overs}.${gameState.scores.B.balls} overs`;
+            
+            const currentBatsmenIndices = gameState.currentBatsmen[gameState.battingTeam];
+            const batsman1 = gameState.batsmen[gameState.battingTeam][currentBatsmenIndices[0]];
+            const batsman2 = gameState.batsmen[gameState.battingTeam][currentBatsmenIndices[1]];
+            
+            document.getElementById('batter1Name').textContent = batsman1.name;
+            document.getElementById('batter1Runs').textContent = batsman1.runs;
+            document.getElementById('batter1Balls').textContent = batsman1.balls;
+            
+            document.getElementById('batter2Name').textContent = batsman2.name;
+            document.getElementById('batter2Runs').textContent = batsman2.runs;
+            document.getElementById('batter2Balls').textContent = batsman2.balls;
+            
+            const bowlerIndex = gameState.currentBowler[gameState.bowlingTeam];
+            const bowler = gameState.bowlers[gameState.bowlingTeam][bowlerIndex];
+            
+            document.getElementById('bowlerName').textContent = bowler.name;
+            document.getElementById('bowlerOvers').textContent = `${bowler.overs}.${bowler.balls}`;
+            document.getElementById('bowlerRuns').textContent = bowler.runs;
+            document.getElementById('bowlerWickets').textContent = bowler.wickets;
+            
+            document.getElementById('speedLevel').textContent = `Level ${gameState.speedLevel}`;
+            const speed = 100 + (gameState.speedLevel - 1) * 10;
+            document.getElementById('speedValue').textContent = `${speed} km/h`;
+        }
+
+        function updateCommentary(text) {
+            document.getElementById('commentary').textContent = text;
+        }
+
+        function positionPlayers() {
+            const field = document.querySelector('.field');
+            const batter1 = document.getElementById('batter1');
+            const batter2 = document.getElementById('batter2');
+            const bowler = document.getElementById('bowler');
+            
+            batter1.style.bottom = '25%';
+            batter1.style.left = '45%';
+            
+            batter2.style.bottom = '25%';
+            batter2.style.left = '55%';
+            
+            bowler.style.bottom = '60%';
+            bowler.style.left = '50%';
+            
+            const fielderPositions = [
+                { bottom: '70%', left: '30%' },
+                { bottom: '70%', left: '70%' },
+                { bottom: '50%', left: '20%' },
+                { bottom: '50%', left: '80%' },
+                { bottom: '35%', left: '15%' },
+                { bottom: '35%', left: '85%' },
+                { bottom: '45%', left: '40%' },
+                { bottom: '45%', left: '60%' },
+                { bottom: '55%', left: '25%' },
+                { bottom: '55%', left: '75%' }
+            ];
+            
+            document.querySelectorAll('.fielder').forEach(f => f.remove());
+            
+            fielderPositions.forEach((pos) => {
+                const fielder = document.createElement('div');
+                fielder.className = 'player fielder';
+                fielder.style.bottom = pos.bottom;
+                fielder.style.left = pos.left;
+                field.appendChild(fielder);
+            });
+        }
+
+        function playShot(shotType) {
+            const team = gameState.battingTeam;
+            const currentBatsmenIndices = gameState.currentBatsmen[team];
+            const strikerIndex = currentBatsmenIndices[0];
+            const striker = gameState.batsmen[team][strikerIndex];
+            
+            const bowlerTeam = gameState.bowlingTeam;
+            const bowlerIndex = gameState.currentBowler[bowlerTeam];
+            const bowler = gameState.bowlers[bowlerTeam][bowlerIndex];
+            
+            const outcomes = {
+                'defensive': [0, 0, 0, 1, 1, 2, 'W'],
+                'drive': [0, 1, 1, 2, 2, 3, 4, 'W'],
+                'lofted': [0, 1, 2, 3, 4, 6, 'W', 'W'],
+                'power': [0, 2, 3, 4, 4, 6, 6, 'W', 'W']
+            };
+            
+            const possibleOutcomes = outcomes[shotType];
+            const outcome = possibleOutcomes[Math.floor(Math.random() * possibleOutcomes.length)];
+            
+            animateBall(outcome);
+            
+            setTimeout(() => {
+                if (outcome === 'W') {
+                    striker.out = true;
+                    gameState.scores[team].wickets++;
+                    bowler.wickets++;
+                    updateCommentary(`OUT! ${striker.name} is out! Bowler: ${bowler.name}`);
+                    
+                    if (gameState.scores[team].wickets >= 10) {
+                        endInnings();
+                    } else {
+                        for (let i = 0; i < gameState.batsmen[team].length; i++) {
+                            if (!gameState.batsmen[team][i].out && !currentBatsmenIndices.includes(i)) {
+                                currentBatsmenIndices[0] = i;
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    striker.runs += outcome;
+                    striker.balls++;
+                    bowler.runs += outcome;
+                    gameState.scores[team].runs += outcome;
+                    gameState.totalRuns += outcome;
+                    
+                    if (gameState.totalRuns > 0 && gameState.totalRuns % 10 === 0) {
+                        gameState.speedLevel = Math.min(gameState.speedLevel + 1, 5);
+                        updateCommentary(`Speed increased to Level ${gameState.speedLevel}!`);
+                    } else {
+                        let comment = '';
+                        if (outcome === 0) comment = 'No run';
+                        else if (outcome === 4) comment = 'FOUR! Beautiful shot!';
+                        else if (outcome === 6) comment = 'SIX! Massive hit!';
+                        else comment = `${outcome} run${outcome > 1 ? 's' : ''}`;
+                        
+                        updateCommentary(`${comment} - ${striker.name}`);
+                    }
+                }
+                
+                bowler.balls++;
+                if (bowler.balls === 6) {
+                    bowler.overs++;
+                    bowler.balls = 0;
+                    gameState.currentBowler[bowlerTeam] = (bowlerIndex + 1) % gameState.bowlers[bowlerTeam].length;
+                }
+                
+                gameState.scores[team].balls++;
+                if (gameState.scores[team].balls === 6) {
+                    gameState.scores[team].overs++;
+                    gameState.scores[team].balls = 0;
+                }
+                
+                if (outcome % 2 === 1 && outcome !== 'W') {
+                    [currentBatsmenIndices[0], currentBatsmenIndices[1]] = 
+                    [currentBatsmenIndices[1], currentBatsmenIndices[0]];
+                }
+                
+                updateScoreboard();
+            }, 500);
+        }
+
+        function animateBall(outcome) {
+            const ball = document.getElementById('ball');
+            const bowler = document.getElementById('bowler');
+            
+            ball.style.bottom = bowler.style.bottom;
+            ball.style.left = bowler.style.left;
+            ball.style.display = 'block';
+            
+            const endBottom = '25%';
+            const endLeft = '45%';
+            const speed = 1000 / gameState.speedLevel;
+            
+            ball.style.transition = `all ${speed}ms linear`;
+            ball.style.bottom = endBottom;
+            ball.style.left = endLeft;
+            
+            setTimeout(() => {
+                if (outcome !== 'W' && outcome > 0) {
+                    const angles = { 1: 30, 2: 45, 3: 60, 4: 20, 6: 10 };
+                    const angle = angles[outcome] || 45;
+                    const distance = outcome >= 4 ? 300 : 100;
+                    
+                    const newLeft = 45 + Math.cos(angle * Math.PI / 180) * distance / 10;
+                    const newBottom = 25 + Math.sin(angle * Math.PI / 180) * distance / 10;
+                    
+                    ball.style.transition = `all ${speed * 2}ms ease-out`;
+                    ball.style.left = `${newLeft}%`;
+                    ball.style.bottom = `${newBottom}%`;
+                    
+                    if (outcome >= 4) {
+                        showBoundaryIndicator(outcome);
+                    }
+                } else if (outcome === 'W') {
+                    ball.style.transition = `all ${speed}ms ease-in`;
+                    ball.style.left = '50%';
+                    ball.style.bottom = '20%';
+                }
+            }, speed);
+            
+            setTimeout(() => {
+                ball.style.display = 'none';
+                ball.style.transition = 'none';
+            }, speed * 3);
+        }
+
+        function showBoundaryIndicator(runs) {
+            const field = document.querySelector('.field');
+            const indicator = document.createElement('div');
+            indicator.className = 'boundary-indicator';
+            indicator.textContent = runs === 4 ? 'FOUR!' : 'SIX!';
+            indicator.style.bottom = '40%';
+            indicator.style.left = '50%';
+            field.appendChild(indicator);
+            
+            setTimeout(() => {
+                indicator.remove();
+            }, 2000);
+        }
+
+        function endInnings() {
+            const currentTeam = gameState.battingTeam;
+            const target = gameState.scores[currentTeam].runs + 1;
+            
+            updateCommentary(`Innings break! ${currentTeam === 'A' ? 'Team Red' : 'Team Blue'} scored ${gameState.scores[currentTeam].runs}/${gameState.scores[currentTeam].wickets}. Target: ${target}`);
+            
+            gameState.battingTeam = gameState.battingTeam === 'A' ? 'B' : 'A';
+            gameState.bowlingTeam = gameState.bowlingTeam === 'A' ? 'B' : 'A';
+            gameState.currentInnings = 2;
+            gameState.currentBatsmen[gameState.battingTeam] = [0, 1];
+            
+            setTimeout(() => {
+                updateCommentary(`${gameState.battingTeam === 'A' ? 'Team Red' : 'Team Blue'} need ${target} runs to win!`);
+            }, 2000);
+        }
+
+        function initGame() {
+            initializeRosters();
+            positionPlayers();
+            updateScoreboard();
+            updateCommentary('Match started! Team Red batting first.');
+        }
+
+        initGame();
+    </script>
+</body>
+</html>
